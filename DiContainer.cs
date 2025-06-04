@@ -83,7 +83,8 @@ namespace GignerEngine.DiContainer
             List<T> result = [];
             foreach (var (type, _) in _definitions)
             {
-                if (type == typeof(T)) 
+                var interfaces = type.GetInterfaces();
+                if (interfaces.Contains(typeof(T))) 
                 {
                     result.Add((T)Resolve(type));
                 }
@@ -97,6 +98,11 @@ namespace GignerEngine.DiContainer
             List<object> result = [];
             foreach (var (defType, _) in _definitions)
             {
+                if (defType.IsGenericType && defType.GetGenericTypeDefinition() == type)
+                {
+                    result.Add(Resolve(defType));
+                    continue;
+                }
                 var interfaces = defType.GetInterfaces();
                 foreach (var iface in interfaces)
                 {

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
@@ -17,9 +16,11 @@ namespace GignerEngine.DiContainer.Tests
             }
         }
 
-        private interface IService{}
-        private class Service1 : IService{}
-        private class Service2 : IService{}
+        private interface IService;
+
+        private class Service1 : IService;
+
+        private class Service2 : IService;
 
         private class ParameterClass
         {
@@ -90,8 +91,8 @@ namespace GignerEngine.DiContainer.Tests
         {
             var binds = new Bind[]
             {
-                new Bind<IService>().From<Service1>().AsMultiple(),
-                new Bind<IService>().From<Service2>().AsMultiple()
+                new Bind<Service1>().AsMultiple(),
+                new Bind<Service2>().AsMultiple()
             };
             var container = CreateContainer(binds);
 

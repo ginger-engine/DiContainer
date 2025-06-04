@@ -6,10 +6,10 @@ namespace GignerEngine.DiContainer.Tests;
 public class DiBuilderTests
 {
     private class Foo {}
-    private class Bar {}
+    private class Bar : Foo {}
     private class FooFactory : IFactory<Foo>
     {
-        public Foo Create() => new Foo();
+        public Foo Create() => new();
         object IFactory.Create() => Create();
     }
 
