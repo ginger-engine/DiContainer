@@ -1,0 +1,35 @@
+# Standard .NET gitignore
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Auto generated VS/Resharper files
+*.ncb
+*.log
+*.ds_store
+
+# Mac file system files
+.DS_Store
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# Others
+_ReSharper*/
+
