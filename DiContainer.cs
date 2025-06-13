@@ -122,31 +122,31 @@ namespace GignerEngine.DiContainer
         {
             try
             {
-                if (!_definitions.ContainsKey(type))
-                {
-                    throw new Exception($"Can't resolve {type.FullName}.There are no any definition registered.");
-                }
                 if (_circuitProtection.Contains(type))
                 {
                     throw new Exception($"Circuit reference on resolve {type.FullName}.");
                 }
-                    
+
                 _circuitProtection.Add(type);
-                var definition = _definitions[type];
 
-                if (definition.instance != null)
+                if (_definitions.TryGetValue(type, out var definition))
                 {
-                    return definition.instance;
+                    if (definition.instance != null)
+                    {
+                        return definition.instance!;
+                    }
+
+                    var obj = ResolveBind(definition.bind);
+                    definition.bind.AfterInitDelegates?.Invoke(obj, this);
+                    if (definition.bind.asSingle)
+                    {
+                        definition.instance = obj;
+                    }
+
+                    return obj;
                 }
 
-                var obj = ResolveBind(definition.bind);
-                definition.bind.AfterInitDelegates?.Invoke(obj, this);
-                if (definition.bind.asSingle)
-                {
-                    definition.instance = obj;
-                }
-
-                return obj;
+                return ResolveUnregistered(type);
             }
             finally
             {
@@ -181,9 +181,37 @@ namespace GignerEngine.DiContainer
             return factory.Create();
         }
 
+        private object ResolveUnregistered(Type type)
+        {
+            if (type.IsInterface || type.IsAbstract)
+                throw new InvalidOperationException($"Can't resolve {type.FullName}");
+
+            var bind = new Bind { instanceType = type, type = type };
+
+            try
+            {
+                return ResolveBindWithReflection(bind);
+            }
+            catch (Exception e) when (e is not InvalidOperationException)
+            {
+                throw new InvalidOperationException($"Can't resolve {type.FullName}", e);
+            }
+        }
+
         private object ResolveBindWithReflection(Bind bind)
         {
-            ConstructorInfo constructor = bind.instanceType.GetConstructors()[0];
+            ConstructorInfo? constructor = bind.instanceType
+                .GetConstructors()
+                .OrderByDescending(c => c.GetParameters().Length)
+                .FirstOrDefault();
+
+            if (constructor == null)
+            {
+                var instance = Activator.CreateInstance(bind.instanceType);
+                if (instance == null)
+                    throw new InvalidOperationException($"Activator.CreateInstance returned null for {bind.instanceType.FullName}");
+                return instance;
+            }
             var args = new object[constructor.GetParameters().Length];
 
             int i = 0;
@@ -211,15 +239,17 @@ namespace GignerEngine.DiContainer
                 }
                 else
                 {
-                    if (!_parameters.TryGetValue(parameterInfo.Name, out var parameter))
-                        throw new Exception($"Can't resolve parameter {parameterInfo.Name}. No value was registered.");
+                    if (!_parameters.TryGetValue(parameterInfo.Name!, out var parameter))
+                        throw new InvalidOperationException($"Can't resolve parameter {parameterInfo.Name}. No value was registered.");
                     args[i] = parameter;
                 }
 
                 i++;
             }
 
-            var obj = Activator.CreateInstance(bind.instanceType, args);
+            var obj = constructor.Invoke(args);
+            if (obj == null)
+                throw new InvalidOperationException($"Activator.CreateInstance returned null for {bind.instanceType.FullName}");
 
             return obj;
         }

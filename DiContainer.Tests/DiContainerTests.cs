@@ -123,5 +123,52 @@ namespace GignerEngine.DiContainer.Tests
 
             Assert.NotNull(foo);
         }
+
+        private class AutoDep {}
+        private class AutoTarget
+        {
+            public AutoDep Dep { get; }
+            public AutoTarget(AutoDep dep)
+            {
+                Dep = dep;
+            }
+        }
+
+        private interface IUnknown {}
+        private class NeedInterface
+        {
+            public NeedInterface(IUnknown p) {}
+        }
+
+        [Fact]
+        public void Resolve_AutoResolves_UnregisteredType()
+        {
+            var container = CreateContainer(Array.Empty<Bind>());
+
+            var obj = container.Resolve<AutoTarget>();
+
+            Assert.NotNull(obj);
+            Assert.NotNull(obj.Dep);
+        }
+
+        [Fact]
+        public void Resolve_UnregisteredInterface_Throws()
+        {
+            var container = CreateContainer(Array.Empty<Bind>());
+
+            Assert.Throws<InvalidOperationException>(() => container.Resolve<NeedInterface>());
+        }
+
+        [Fact]
+        public void Resolve_UsesRegisteredDependencies_WhenAutoResolving()
+        {
+            var foo = new Foo();
+            var binds = new[] { new Bind<Foo>().FromInstance(foo) };
+            var container = CreateContainer(binds);
+
+            var bar = container.Resolve<Bar>();
+
+            Assert.Same(foo, bar.Foo);
+        }
     }
 }
